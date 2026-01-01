@@ -68,7 +68,7 @@ function Home() {
           </div>
 
           {/* Main Headline with Gradient Text */}
-          <h1 className="text-7xl md:text-8xl lg:text-9xl font-black mb-8 leading-tight">
+          <h1 className="text-6xl md:text-7xl lg:text-7xl font-black mb-8 leading-tight">
             <span className="bg-gradient-to-r from-neon via-neon to-green-400 bg-clip-text text-transparent">
               Automated
             </span>
@@ -84,11 +84,11 @@ function Home() {
           {/* CTA Button with Enhanced Glow */}
           <button
             onClick={() => navigate('/dashboard')}
-            className="group relative inline-flex items-center gap-3 px-14 py-6 text-2xl font-bold text-black bg-neon rounded-xl hover:bg-neon-hover transition-all duration-300 shadow-neon-lg hover:shadow-[0_0_40px_rgba(208,252,3,0.6)] transform hover:scale-110"
+            className="group relative inline-flex items-center gap-3 px-8 py-6 text-2xl font-bold text-black bg-neon rounded-xl hover:bg-neon-hover transition-all duration-300 shadow-neon-lg hover:shadow-[0_0_40px_rgba(208,252,3,0.6)] transform hover:scale-110"
           >
             <span>Launch Dashboard</span>
             <svg 
-              className="w-7 h-7 transform group-hover:translate-x-2 transition-transform" 
+              className="w-7 h-7 transform group-hover:translate-x-1 transition-transform" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
