@@ -51,7 +51,7 @@ const waves = [
     const drawWave = (wave, phase) => {
       ctx.beginPath();
       
-      // Dynamic colors based on theme
+      // Dynamic colors based on them
       const waveColor = isDark 
         ? `rgba(208, 252, 3, ${wave.opacity})`  // Neon green for dark mode
         : `rgba(10, 255, 10, ${wave.opacity })`; // Softer green for light mode
