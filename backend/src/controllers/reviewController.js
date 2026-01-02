@@ -111,6 +111,7 @@ exports.approveReview = async (req, res) => {
           });
 
           githubCommentPosted = true;
+          console.log('✅ Review Approved & Posted for PR:', reviewId);
         } else {
           githubError = 'Invalid PR link format';
         }
@@ -168,22 +169,83 @@ exports.rejectReview = async (req, res) => {
       });
     }
 
-    // Update status to REJECTED (or delete if preferred)
+    // Post REQUEST_CHANGES review to GitHub if token is available (BEFORE updating DB)
+    let githubReviewPosted = false;
+    let githubError = null;
+    let reviewMethod = null;
+
+    if (process.env.GITHUB_TOKEN) {
+      try {
+        // Extract owner, repo, and PR number from prLink
+        const prUrlMatch = review.prLink.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+        
+        if (prUrlMatch) {
+          const [, owner, repo, pull_number] = prUrlMatch;
+          
+          const octokit = new Octokit({
+            auth: process.env.GITHUB_TOKEN
+          });
+
+          try {
+            // Try to submit a review with REQUEST_CHANGES event
+            await octokit.rest.pulls.createReview({
+              owner,
+              repo,
+              pull_number: parseInt(pull_number),
+              event: 'REQUEST_CHANGES',
+              body: `⛔ Instructor Rejected this PR.\n\nPlease check the requirements and resubmit.`
+            });
+
+            githubReviewPosted = true;
+            reviewMethod = 'REQUEST_CHANGES';
+            console.log('❌ Review Rejected for PR:', reviewId, '(REQUEST_CHANGES)');
+          } catch (reviewError) {
+            // Fallback: If REQUEST_CHANGES fails (e.g., self-review restriction),
+            // post a comment instead
+            console.log('⚠️  REQUEST_CHANGES failed, falling back to COMMENT:', reviewError.message);
+            
+            try {
+              await octokit.rest.pulls.createReview({
+                owner,
+                repo,
+                pull_number: parseInt(pull_number),
+                event: 'COMMENT',
+                body: `⛔ REJECTED (Instructor rejected this PR)\n\nPlease check the requirements and resubmit.`
+              });
+
+              githubReviewPosted = true;
+              reviewMethod = 'COMMENT';
+              console.log('❌ Review Rejected for PR:', reviewId, '(COMMENT fallback)');
+            } catch (commentError) {
+              console.error('❌ Both REQUEST_CHANGES and COMMENT failed:', commentError.message);
+              githubError = `REQUEST_CHANGES failed: ${reviewError.message}; COMMENT failed: ${commentError.message}`;
+            }
+          }
+        } else {
+          githubError = 'Invalid PR link format';
+        }
+      } catch (error) {
+        console.error('Error parsing PR link or initializing Octokit:', error);
+        githubError = error.message;
+      }
+    }
+
+    // ALWAYS update status to REJECTED in DB, regardless of GitHub API success/failure
     const updatedReview = await prisma.review.update({
       where: { id: reviewId },
       data: { status: 'REJECTED' }
     });
 
-    // Alternative: Delete the review entirely
-    // await prisma.review.delete({
-    //   where: { id: reviewId }
-    // });
-
-    // Return success response
+    // ALWAYS return success response to frontend
     res.status(200).json({
       success: true,
       message: 'Review rejected successfully',
-      data: updatedReview
+      data: updatedReview,
+      github: {
+        reviewPosted: githubReviewPosted,
+        method: reviewMethod,
+        error: githubError
+      }
     });
   } catch (error) {
     console.error('Error rejecting review:', error);

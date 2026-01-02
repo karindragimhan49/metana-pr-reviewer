@@ -43,7 +43,7 @@ Direct commits to the ${branchName} branch are not allowed.
 - Hotfix: \`hotfix/issue-description\`
 - Bugfix: \`bugfix/bug-description\`
 
-### Status: REJECTED
+### 🤖 AI Recommendation: REJECT
     `.trim();
 
     return {
@@ -175,7 +175,7 @@ Consider following standard branch naming conventions:
 ### Current Assessment
 Manual review recommended
 
-### Status: PENDING REVIEW
+### 🤖 AI Recommendation: PENDING REVIEW
     `.trim();
 
     return {
@@ -250,13 +250,13 @@ Manual review recommended
 
     // Overall status
     if (issues.length === 0) {
-      feedback += '### Status: APPROVED\n';
+      feedback += '### 🤖 AI Recommendation: APPROVE\n';
       feedback += 'Great work! This PR meets all quality standards.\n';
     } else if (issues.some(i => i.includes('CRITICAL'))) {
-      feedback += '### Status: REJECTED\n';
+      feedback += '### 🤖 AI Recommendation: REJECT\n';
       feedback += 'Critical issues must be resolved before merging.\n';
     } else {
-      feedback += '### Status: NEEDS CHANGES\n';
+      feedback += '### 🤖 AI Recommendation: REQUEST CHANGES\n';
       feedback += 'Please address the issues above before final approval.\n';
     }
 
