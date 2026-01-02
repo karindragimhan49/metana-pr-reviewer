@@ -16,4 +16,11 @@ router.get('/', reviewController.getPendingReviews);
  */
 router.post('/:id/approve', reviewController.approveReview);
 
+/**
+ * @route   POST /api/reviews/:id/reject
+ * @desc    Reject a review
+ * @access  Public (add authentication later if needed)
+ */
+router.post('/:id/reject', reviewController.rejectReview);
+
 module.exports = router;

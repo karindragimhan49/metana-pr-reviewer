@@ -27,23 +27,23 @@ class ReviewService {
    */
   reviewMainBranch(branchName, codeDiff) {
     const feedback = `
-⛔ **CRITICAL WARNING: Direct Commit to ${branchName}**
+## CRITICAL WARNING: Direct Commit to ${branchName}
 
-**Issue:**
+### Issue
 Direct commits to the ${branchName} branch are not allowed.
 
-**Required Actions:**
+### Required Actions
 1. Create a feature branch from ${branchName}
 2. Make your changes in the feature branch
 3. Open a Pull Request for review
 4. Only merge to ${branchName} through approved PRs
 
-**Branch Naming Convention:**
+### Branch Naming Convention
 - Feature: \`feature/your-feature-name\`
 - Hotfix: \`hotfix/issue-description\`
 - Bugfix: \`bugfix/bug-description\`
 
-**Status:** ❌ REJECTED
+### Status: REJECTED
     `.trim();
 
     return {
@@ -70,24 +70,24 @@ Direct commits to the ${branchName} branch are not allowed.
 
     // Analyze feature branch
     if (hasNewFunctions) {
-      positives.push('✅ New functions detected - good feature implementation');
+      positives.push('New functions detected - good feature implementation');
       
       if (!hasTests) {
-        issues.push('⚠️ New functions added but no test files detected');
+        issues.push('New functions added but no test files detected');
         suggestions.push('Add unit tests for the new functions');
       } else {
-        positives.push('✅ Test files included - excellent!');
+        positives.push('Test files included - excellent');
       }
 
       if (!hasDocumentation) {
         suggestions.push('Consider adding JSDoc comments to new functions');
       }
     } else {
-      suggestions.push('💡 Consider breaking down changes into smaller, focused features');
+      suggestions.push('Consider breaking down changes into smaller, focused features');
     }
 
     if (linesChanged > 500) {
-      issues.push('⚠️ Large changeset detected (500+ lines)');
+      issues.push('Large changeset detected (500+ lines)');
       suggestions.push('Consider splitting this into multiple smaller PRs for easier review');
     }
 
@@ -117,30 +117,30 @@ Direct commits to the ${branchName} branch are not allowed.
 
     // Strict hotfix rules
     if (linesChanged > 100) {
-      issues.push('🚨 CRITICAL: Hotfix changes exceed 100 lines');
+      issues.push('CRITICAL: Hotfix changes exceed 100 lines');
       issues.push('Hotfixes should be minimal and focused on the immediate issue');
       suggestions.push('Consider creating a feature branch for extensive changes');
     } else {
-      positives.push('✅ Change scope is appropriately minimal');
+      positives.push('Change scope is appropriately minimal');
     }
 
     if (hasNewFunctions) {
-      issues.push('⚠️ WARNING: New functions detected in hotfix');
+      issues.push('WARNING: New functions detected in hotfix');
       issues.push('Hotfixes should modify existing code, not add new features');
       suggestions.push('Move new functionality to a feature branch');
     } else {
-      positives.push('✅ No new functions - appropriate for hotfix');
+      positives.push('No new functions - appropriate for hotfix');
     }
 
     if (affectsMultipleFiles > 5) {
-      issues.push('⚠️ Changes affect multiple files (5+)');
+      issues.push('Changes affect multiple files (5+)');
       suggestions.push('Hotfixes should be surgical and focused on specific files');
     } else {
-      positives.push('✅ Limited file scope - focused fix');
+      positives.push('Limited file scope - focused fix');
     }
 
     if (!hasTests) {
-      issues.push('⚠️ No test updates detected');
+      issues.push('No test updates detected');
       suggestions.push('Add regression tests to prevent this issue from recurring');
     }
 
@@ -160,20 +160,22 @@ Direct commits to the ${branchName} branch are not allowed.
    */
   reviewOtherBranch(branchName, codeDiff) {
     const feedback = `
-📋 **Branch Review: ${branchName}**
+## Branch Review: ${branchName}
 
-**Branch Type:** Other/Custom
+### Branch Type
+Other/Custom
 
-**Recommendation:**
+### Recommendation
 Consider following standard branch naming conventions:
 - \`feature/\` - For new features
 - \`hotfix/\` - For urgent production fixes
 - \`bugfix/\` - For bug fixes
 - \`chore/\` - For maintenance tasks
 
-**Current Assessment:** Manual review recommended
+### Current Assessment
+Manual review recommended
 
-**Status:** ⏳ PENDING REVIEW
+### Status: PENDING REVIEW
     `.trim();
 
     return {
@@ -226,35 +228,35 @@ Consider following standard branch naming conventions:
   }
 
   buildFeedback(branchName, positives, issues, suggestions, type) {
-    let feedback = `## 🔍 ${type} Branch Review: \`${branchName}\`\n\n`;
+    let feedback = `## ${type} Branch Review: \`${branchName}\`\n\n`;
 
     if (positives.length > 0) {
-      feedback += '### ✨ Strengths\n';
+      feedback += '### Strengths\n';
       positives.forEach(item => feedback += `- ${item}\n`);
       feedback += '\n';
     }
 
     if (issues.length > 0) {
-      feedback += '### ⚠️ Issues Found\n';
+      feedback += '### Issues Found\n';
       issues.forEach(item => feedback += `- ${item}\n`);
       feedback += '\n';
     }
 
     if (suggestions.length > 0) {
-      feedback += '### 💡 Suggestions\n';
+      feedback += '### Suggestions\n';
       suggestions.forEach(item => feedback += `- ${item}\n`);
       feedback += '\n';
     }
 
     // Overall status
     if (issues.length === 0) {
-      feedback += '### ✅ **Status: APPROVED**\n';
+      feedback += '### Status: APPROVED\n';
       feedback += 'Great work! This PR meets all quality standards.\n';
     } else if (issues.some(i => i.includes('CRITICAL'))) {
-      feedback += '### ❌ **Status: REJECTED**\n';
+      feedback += '### Status: REJECTED\n';
       feedback += 'Critical issues must be resolved before merging.\n';
     } else {
-      feedback += '### 🔄 **Status: NEEDS CHANGES**\n';
+      feedback += '### Status: NEEDS CHANGES\n';
       feedback += 'Please address the issues above before final approval.\n';
     }
 

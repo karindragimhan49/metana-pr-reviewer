@@ -40,4 +40,19 @@ export const approveReview = async (reviewId) => {
   }
 };
 
+/**
+ * Reject a review
+ * @param {number} reviewId - The ID of the review to reject
+ * @returns {Promise} Updated review data
+ */
+export const rejectReview = async (reviewId) => {
+  try {
+    const response = await api.post(`/reviews/${reviewId}/reject`);
+    return response.data;
+  } catch (error) {
+    console.error('Error rejecting review:', error);
+    throw error;
+  }
+};
+
 export default api;

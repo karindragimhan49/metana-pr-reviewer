@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPendingReviews, approveReview } from '../services/api';
+import { getPendingReviews, approveReview, rejectReview } from '../services/api';
 import ThemeToggle from './ThemeToggle';
 import metanaLogo from '../assets/images.png';
 
@@ -8,6 +8,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
   const [selectedReview, setSelectedReview] = useState(null);
 
   useEffect(() => {
@@ -52,6 +53,30 @@ function Dashboard() {
       console.error(err);
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (reviewId) => {
+    if (!confirm('Are you sure you want to reject this review?')) {
+      return;
+    }
+
+    try {
+      setRejectingId(reviewId);
+      const result = await rejectReview(reviewId);
+      
+      if (result.success) {
+        alert('Review rejected successfully!');
+        
+        // Remove from list
+        setReviews(reviews.filter(review => review.id !== reviewId));
+        setSelectedReview(null);
+      }
+    } catch (err) {
+      alert('Failed to reject review: ' + (err.response?.data?.message || err.message));
+      console.error(err);
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -277,10 +302,10 @@ function Dashboard() {
                   {/* AI Feedback Terminal - VS Code Style */}
                   <div className="mb-5">
                     <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">AI Analysis</label>
-                    <div className="bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-white/10 rounded-md p-4 font-mono text-xs overflow-auto max-h-96">
-                      <div className="text-gray-400 dark:text-gray-600 mb-3">$ ai-review --analyze</div>
+                    <div className="bg-gray-100 dark:bg-[#0d1117] border border-gray-200 dark:border-white/10 rounded-md p-4 font-mono text-xs overflow-auto max-h-96">
+                      <div className="text-gray-500 dark:text-gray-600 mb-3">$ ai-review --analyze</div>
                       <pre className="text-gray-800 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        {selectedReview.aiFeedback}
+                        {selectedReview.feedbackContent || selectedReview.aiFeedback}
                       </pre>
                     </div>
                   </div>
@@ -312,10 +337,20 @@ function Dashboard() {
 
                     {/* Reject Button */}
                     <button
-                      disabled={approvingId === selectedReview.id}
+                      onClick={() => handleReject(selectedReview.id)}
+                      disabled={approvingId === selectedReview.id || rejectingId === selectedReview.id}
                       className="px-4 py-2.5 bg-transparent border border-gray-300 dark:border-white/20 text-gray-700 dark:text-gray-400 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      Reject
+                      <span className="flex items-center justify-center gap-2">
+                        {rejectingId === selectedReview.id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-gray-700 dark:border-white border-t-transparent rounded-full animate-spin"></div>
+                            Rejecting...
+                          </>
+                        ) : (
+                          'Reject'
+                        )}
+                      </span>
                     </button>
                   </div>
                 </div>
