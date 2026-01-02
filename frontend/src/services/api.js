@@ -26,6 +26,20 @@ export const getPendingReviews = async () => {
 };
 
 /**
+ * Get all reviews (for history)
+ * @returns {Promise} Array of all reviews
+ */
+export const getAllReviews = async () => {
+  try {
+    const response = await api.get('/reviews?status=all');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all reviews:', error);
+    throw error;
+  }
+};
+
+/**
  * Approve a review and post to GitHub
  * @param {number} reviewId - The ID of the review to approve
  * @returns {Promise} Updated review data

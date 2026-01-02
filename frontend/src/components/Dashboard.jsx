@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getPendingReviews, approveReview, rejectReview } from '../services/api';
+import { getPendingReviews, getAllReviews, approveReview, rejectReview } from '../services/api';
 import ThemeToggle from './ThemeToggle';
+import HistoryModal from './HistoryModal';
 import metanaLogo from '../assets/images.png';
 
 function Dashboard() {
@@ -11,6 +12,8 @@ function Dashboard() {
   const [rejectingId, setRejectingId] = useState(null);
   const [selectedReview, setSelectedReview] = useState(null);
   const [processedCount, setProcessedCount] = useState(0);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [allReviews, setAllReviews] = useState([]);
 
   useEffect(() => {
     fetchReviews();
@@ -28,6 +31,17 @@ function Dashboard() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenHistory = async () => {
+    try {
+      const data = await getAllReviews();
+      setAllReviews(data.data || []);
+      setIsHistoryModalOpen(true);
+    } catch (err) {
+      alert('Failed to fetch review history');
+      console.error(err);
     }
   };
 
@@ -179,14 +193,18 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
+          <div 
+            onClick={handleOpenHistory}
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-all cursor-pointer hover:border-gray-300 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-white/5 group"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Total Processed</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{processedCount}</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1 group-hover:text-green-600 dark:group-hover:text-neon transition-colors">{processedCount}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">Click to view history</p>
               </div>
-              <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-neon/10 transition-colors">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -399,6 +417,13 @@ function Dashboard() {
           background: rgba(255, 255, 255, 0.2);
         }
       `}</style>
+
+      {/* History Modal */}
+      <HistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        reviews={allReviews}
+      />
     </div>
   );
 }

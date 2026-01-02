@@ -4,15 +4,27 @@ const { Octokit } = require('@octokit/rest');
 const prisma = new PrismaClient();
 
 /**
- * Get all pending reviews with stats
- * @route GET /api/reviews
+ * Get reviews with optional status filter
+ * @route GET /api/reviews?status=all|PENDING|APPROVED|REJECTED
  */
 exports.getPendingReviews = async (req, res) => {
   try {
-    const pendingReviews = await prisma.review.findMany({
-      where: {
-        status: 'PENDING'
-      },
+    const { status } = req.query;
+    
+    // Build where clause based on status parameter
+    let whereClause = {};
+    
+    if (status && status !== 'all') {
+      // Specific status requested
+      whereClause = { status: status.toUpperCase() };
+    } else if (!status) {
+      // No parameter = default to PENDING (backward compatibility)
+      whereClause = { status: 'PENDING' };
+    }
+    // If status === 'all', whereClause remains empty (fetch all)
+    
+    const reviews = await prisma.review.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: 'desc'
       }
@@ -29,15 +41,15 @@ exports.getPendingReviews = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      count: pendingReviews.length,
+      count: reviews.length,
       processedCount: processedCount,
-      data: pendingReviews
+      data: reviews
     });
   } catch (error) {
-    console.error('Error fetching pending reviews:', error);
+    console.error('Error fetching reviews:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch pending reviews',
+      message: 'Failed to fetch reviews',
       error: error.message
     });
   }
