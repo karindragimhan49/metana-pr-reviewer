@@ -128,3 +128,59 @@ exports.approveReview = async (req, res) => {
     });
   }
 };
+
+/**
+ * Reject a review and remove it from the database
+ * @route POST /api/reviews/:id/reject
+ */
+exports.rejectReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reviewId = parseInt(id);
+
+    // Validate ID
+    if (isNaN(reviewId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid review ID'
+      });
+    }
+
+    // Find the review
+    const review = await prisma.review.findUnique({
+      where: { id: reviewId }
+    });
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Review not found'
+      });
+    }
+
+    // Update status to REJECTED (or delete if preferred)
+    const updatedReview = await prisma.review.update({
+      where: { id: reviewId },
+      data: { status: 'REJECTED' }
+    });
+
+    // Alternative: Delete the review entirely
+    // await prisma.review.delete({
+    //   where: { id: reviewId }
+    // });
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Review rejected successfully',
+      data: updatedReview
+    });
+  } catch (error) {
+    console.error('Error rejecting review:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject review',
+      error: error.message
+    });
+  }
+};
