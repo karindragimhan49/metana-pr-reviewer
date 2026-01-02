@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import WaveBackground from './WaveBackground';
 import ThemeToggle from './ThemeToggle';
 import metanaLogo from '../assets/images.png';
+import pdfReport from '../pp/Metana_DevOps_Assessment_karindra_gimhan.pdf';
 
 function Home() {
   const navigate = useNavigate();
@@ -37,7 +38,9 @@ function Home() {
                 Pricing
               </a>
               <a 
-                href="#docs" 
+                href={pdfReport}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-medium"
               >
                 Documentation
@@ -95,9 +98,14 @@ function Home() {
               Get Started
               <span className="absolute inset-0 rounded-lg bg-green-600 dark:bg-[#d0fc03] blur-xl opacity-50 group-hover:opacity-75 transition-opacity -z-10"></span>
             </button>
-            <button className="px-8 py-4 bg-transparent border-2 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white rounded-lg font-semibold text-lg hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-400 dark:hover:border-white/40 transition-all">
+            <a
+              href={pdfReport}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-transparent border-2 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white rounded-lg font-semibold text-lg hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-400 dark:hover:border-white/40 transition-all inline-block text-center"
+            >
               View Demo
-            </button>
+            </a>
           </div>
 
           {/* Stats */}

@@ -2,7 +2,7 @@
 
 ![Metana Logo](./frontend/src/pp/logo.png)
 
-# 🤖 Automated Pull Request Reviewer
+#  Automated Pull Request Reviewer
 
 ### AI-Powered Code Review System with Instructor Gatekeeping
 
