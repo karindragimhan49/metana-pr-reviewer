@@ -256,7 +256,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Review Inspector Panel */}
+          {/* Review Inspecto Panel */}
           <div className="lg:col-span-2">
             {selectedReview ? (
               <div className="bg-white dark:bg-gray-900 
