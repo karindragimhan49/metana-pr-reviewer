@@ -7,7 +7,7 @@ const prisma = require('../config/database');
  */
 class WebhookController {
   /**
-   * Verify GitHub webhook signature
+   * Verify GitHub webhook signatur
    * @param {string} payload - Raw request body
    * @param {string} signature - GitHub signature from headers
    * @returns {boolean} - Whether signature is valid
