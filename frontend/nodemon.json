@@ -1,0 +1,4 @@
+{
+  "ignore": ["temp_submissions/*", "node_modules/*", "*.log"],
+  "ext": "js,json"
+}
