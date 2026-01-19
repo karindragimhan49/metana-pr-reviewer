@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 // Import routes
 const webhookRoutes = require('./src/routes/webhook');
 const reviewRoutes = require('./src/routes/reviewRoutes');
+const gradingRoutes = require('./routes/gradingRoutes');
 
 // Middleware
 app.use(cors({
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/webhook', webhookRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/grade', gradingRoutes);
 
 // Start server
 app.listen(PORT, () => {
