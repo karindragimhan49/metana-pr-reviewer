@@ -69,4 +69,32 @@ export const rejectReview = async (reviewId) => {
   }
 };
 
+/**
+ * Get active Pull Requests from GitHub
+ * @returns {Promise} Array of active PRs
+ */
+export const getActivePRs = async () => {
+  try {
+    const response = await axios.get('http://localhost:3000/api/github/prs');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching active PRs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all repositories from GitHub
+ * @returns {Promise} Array of repositories
+ */
+export const getAllRepos = async () => {
+  try {
+    const response = await axios.get('http://localhost:3000/api/github/repos');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching repositories:', error);
+    throw error;
+  }
+};
+
 export default api;

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 
 const GradingAssistant = () => {
+  const location = useLocation();
+  
   const [formData, setFormData] = useState({
     studentName: '',
     repoUrl: '',
@@ -23,6 +26,16 @@ const GradingAssistant = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  // Pre-fill repo URL from navigation state
+  useEffect(() => {
+    if (location.state?.repoUrl) {
+      setFormData(prev => ({
+        ...prev,
+        repoUrl: location.state.repoUrl
+      }));
+    }
+  }, [location]);
 
   // Handle form input changes
   const handleInputChange = (e) => {

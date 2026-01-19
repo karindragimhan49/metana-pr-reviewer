@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const webhookRoutes = require('./src/routes/webhook');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const gradingRoutes = require('./routes/gradingRoutes');
+const githubRoutes = require('./routes/githubRoutes');
 
 // Middleware
 app.use(cors({
@@ -30,6 +31,7 @@ app.get('/', (req, res) => {
 app.use('/webhook', webhookRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/grade', gradingRoutes);
+app.use('/api/github', githubRoutes);
 
 // Start server
 app.listen(PORT, () => {

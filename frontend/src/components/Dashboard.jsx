@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getPendingReviews, getAllReviews, approveReview, rejectReview } from '../services/api';
+import { getPendingReviews, getAllReviews, approveReview, rejectReview, getActivePRs, getAllRepos } from '../services/api';
+import { RefreshCw, LayoutDashboard, GitBranch, GitPullRequest } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import HistoryModal from './HistoryModal';
+import ActivePRList from './ActivePRList';
+import RepoTable from './RepoTable';
 import metanaLogo from '../assets/images.png';
 
 function Dashboard() {
@@ -14,9 +17,19 @@ function Dashboard() {
   const [processedCount, setProcessedCount] = useState(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [allReviews, setAllReviews] = useState([]);
+  
+  // GitHub data states
+  const [activePRs, setActivePRs] = useState([]);
+  const [repositories, setRepositories] = useState([]);
+  const [githubLoading, setGithubLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchReviews();
+    fetchGitHubData();
   }, []);
 
   const fetchReviews = async () => {
@@ -32,6 +45,32 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchGitHubData = async () => {
+    try {
+      setGithubLoading(true);
+      
+      // Fetch PRs and Repos in parallel
+      const [prsResponse, reposResponse] = await Promise.all([
+        getActivePRs(),
+        getAllRepos()
+      ]);
+      
+      setActivePRs(prsResponse.data || []);
+      setRepositories(reposResponse.data || []);
+    } catch (err) {
+      console.error('Error fetching GitHub data:', err);
+      // Don't show error - components will handle empty states
+    } finally {
+      setGithubLoading(false);
+    }
+  };
+
+  const handleRefreshGitHub = async () => {
+    setRefreshing(true);
+    await fetchGitHubData();
+    setRefreshing(false);
   };
 
   const handleOpenHistory = async () => {
@@ -178,7 +217,35 @@ function Dashboard() {
         )}
 
         {/* Stats Bar - Clean SaaS Style */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Active PRs</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{activePRs.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Total Repos</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{repositories.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
             <div className="flex items-center justify-between">
               <div>
@@ -199,9 +266,8 @@ function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Total Processed</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Processed</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1 group-hover:text-green-600 dark:group-hover:text-neon transition-colors">{processedCount}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">Click to view history</p>
               </div>
               <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-neon/10 transition-colors">
                 <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,27 +276,159 @@ function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">System Status</p>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-green-600 dark:bg-neon rounded-full"></span>
-                  Online
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-            </div>
+        {/* Tab Navigation */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg mb-6 overflow-hidden transition-colors">
+          <div className="flex border-b border-gray-200 dark:border-white/10">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative ${
+                activeTab === 'overview'
+                  ? 'text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-500/10'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Overview
+              {activeTab === 'overview' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500"></div>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('repositories')}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative ${
+                activeTab === 'repositories'
+                  ? 'text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-500/10'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <GitBranch className="w-4 h-4" />
+              All Repositories
+              {activeTab === 'repositories' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500"></div>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('prs')}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative ${
+                activeTab === 'prs'
+                  ? 'text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-500/10'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <GitPullRequest className="w-4 h-4" />
+              Active PRs
+              {activeTab === 'prs' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-500"></div>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Recent Activity Section */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+                  <button
+                    onClick={handleRefreshGitHub}
+                    disabled={refreshing}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-white/20 rounded-md hover:bg-gray-50 dark:hover:bg-white/5 transition-all disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
+
+                {githubLoading ? (
+                  <div className="space-y-3">
+                    <div className="animate-pulse h-16 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+                    <div className="animate-pulse h-16 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+                    <div className="animate-pulse h-16 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+                  </div>
+                ) : activePRs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <GitPullRequest className="w-6 h-6 text-green-600 dark:text-green-500" />
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">No recent pull requests</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activePRs.slice(0, 3).map((pr, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 transition-all"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <code className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                              {pr.repoName}
+                            </code>
+                            {pr.labels && pr.labels.length > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                {pr.labels[0]}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{pr.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">by {pr.author}</p>
+                        </div>
+                        <a
+                          href={pr.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-4 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors flex-shrink-0"
+                        >
+                          Review
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activePRs.length > 3 && (
+                  <button
+                    onClick={() => setActiveTab('prs')}
+                    className="mt-4 w-full px-4 py-2 text-sm text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400 font-medium border border-green-200 dark:border-green-500/20 rounded-md hover:bg-green-50 dark:hover:bg-green-500/10 transition-all"
+                  >
+                    View All {activePRs.length} Pull Requests →
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* All Repositories Tab */}
+          {activeTab === 'repositories' && (
+            <RepoTable 
+              repos={repositories} 
+              loading={githubLoading}
+              onRefresh={handleRefreshGitHub}
+            />
+          )}
+
+          {/* Active PRs Tab */}
+          {activeTab === 'prs' && (
+            <ActivePRList 
+              prs={activePRs} 
+              loading={githubLoading}
+              onRefresh={handleRefreshGitHub}
+            />
+          )}
+        </div>
+
+        {/* Old Review System - Keep at bottom for now */}
+        <div className="mt-8">
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Pending Reviews List */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-5 transition-colors">
@@ -392,6 +590,7 @@ function Dashboard() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 
