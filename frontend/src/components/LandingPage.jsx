@@ -79,18 +79,19 @@ function LandingPage() {
                 <img src={metanaLogo} alt="Metana" className="h-8 w-auto" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Automated PR Reviewer</h1>
                 <p className="text-xs text-gray-500"></p>
               </div>
             </div>
 
             {/* Sign In Button */}
-            <button
-              onClick={() => navigate('/login')}
-              className="px-6 py-2 border-2 border-gray-900 text-gray-900 font-semibold rounded-lg hover:bg-gray-900 hover:text-white transition-all duration-200"
-            >
-              Sign In
-            </button>
+            <button 
+  onClick={() => navigate('/login')}
+  className="px-6 py-2 bg-[#ccf621] text-gray-900 font-semibold rounded-lg 
+             hover:bg-[#b7e81d] 
+             transition-all duration-200"
+>
+  Sign In
+</button>
           </div>
         </div>
       </nav>
