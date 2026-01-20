@@ -37,6 +37,38 @@ function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes float-slow {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          33% { transform: translate(20px, -20px) rotate(120deg); }
+          66% { transform: translate(-15px, 15px) rotate(240deg); }
+        }
+        
+        @keyframes float-slow-2 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          33% { transform: translate(-25px, 20px) rotate(120deg); }
+          66% { transform: translate(15px, -15px) rotate(240deg); }
+        }
+        
+        @keyframes float-slow-3 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(10px, -30px) rotate(180deg); }
+        }
+        
+        .animate-float-slow {
+          animation: float-slow 20s ease-in-out infinite;
+        }
+        
+        .animate-float-slow-2 {
+          animation: float-slow-2 25s ease-in-out infinite;
+        }
+        
+        .animate-float-slow-3 {
+          animation: float-slow-3 30s ease-in-out infinite;
+        }
+      `}</style>
+      
       {/* Navbar */}
       <nav className="border-b border-gray-200 bg-white sticky top-0 z-50 backdrop-blur-sm bg-white/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -64,8 +96,29 @@ function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="pt-20 pb-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Large Circle - Top Left */}
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#ccf621] rounded-full opacity-10 blur-3xl animate-float-slow"></div>
+          
+          {/* Medium Circle - Top Right */}
+          <div className="absolute -top-20 right-20 w-80 h-80 bg-[#ccf621] rounded-full opacity-15 blur-2xl animate-float-slow-2"></div>
+          
+          {/* Hexagon-like Shape - Middle Left */}
+          <div className="absolute top-1/3 -left-20 w-72 h-72 bg-[#ccf621] opacity-10 blur-2xl animate-float-slow-3" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}></div>
+          
+          {/* Large Blob - Bottom Right */}
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#ccf621] rounded-full opacity-10 blur-3xl animate-float-slow"></div>
+          
+          {/* Small Circle - Middle Right */}
+          <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-[#ccf621] rounded-full opacity-20 blur-xl animate-float-slow-2"></div>
+          
+          {/* Abstract Shape - Bottom Left */}
+          <div className="absolute bottom-32 left-1/4 w-80 h-80 bg-[#ccf621] opacity-10 blur-2xl animate-float-slow-3" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto text-center relative z-10">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#ccf621]/10 border border-[#ccf621]/20 rounded-full mb-8">
             <span className="w-2 h-2 bg-[#ccf621] rounded-full animate-pulse"></span>
