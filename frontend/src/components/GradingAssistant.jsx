@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getAllRepos } from '../services/api';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -10,7 +11,8 @@ import {
   Copy, 
   CheckCheck,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Search
 } from 'lucide-react';
 
 const GradingAssistant = () => {
@@ -26,6 +28,42 @@ const GradingAssistant = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  
+  // Repository dropdown states
+  const [repositories, setRepositories] = useState([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Fetch repositories on mount
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      try {
+        setReposLoading(true);
+        const response = await getAllRepos();
+        setRepositories(response.data || []);
+      } catch (err) {
+        console.error('Error fetching repositories:', err);
+        setRepositories([]);
+      } finally {
+        setReposLoading(false);
+      }
+    };
+    
+    fetchRepositories();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.repo-dropdown-container')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Pre-fill repo URL from navigation state
   useEffect(() => {
@@ -45,10 +83,39 @@ const GradingAssistant = () => {
       [name]: name === 'moduleNumber' ? parseInt(value) : value
     }));
   };
+  
+  // Handle repository selection from dropdown
+  const handleRepoSelect = (repo) => {
+    // Ensure URL ends with .git for proper cloning
+    const repoUrl = repo.url.endsWith('.git') ? repo.url : `${repo.url}.git`;
+    
+    console.log('🎯 Repository selected:', { name: repo.name, url: repoUrl });
+    
+    setFormData(prev => ({
+      ...prev,
+      repoUrl: repoUrl
+    }));
+    setSearchTerm(repo.name);
+    setIsDropdownOpen(false);
+  };
+  
+  // Filter repositories based on search term
+  const filteredRepos = repositories.filter(repo =>
+    repo.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate repository URL
+    if (!formData.repoUrl || formData.repoUrl === 'undefined') {
+      setError('Please select a repository from the dropdown');
+      return;
+    }
+    
+    console.log('📤 Submitting grading request:', formData);
+    
     setLoading(true);
     setError(null);
     setResult(null);
@@ -163,21 +230,100 @@ Generated: ${new Date().toLocaleString()}
                 />
               </div>
 
-              {/* GitHub URL */}
-              <div>
+              {/* GitHub Repository Dropdown */}
+              <div className="relative repo-dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <GitBranch className="inline-block w-4 h-4 mr-1" />
-                  GitHub Repository URL
+                  GitHub Repository
                 </label>
-                <input
-                  type="url"
-                  name="repoUrl"
-                  value={formData.repoUrl}
-                  onChange={handleInputChange}
-                  placeholder="https://github.com/student/repo"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
+                {reposLoading ? (
+                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading repositories...
+                  </div>
+                ) : repositories.length === 0 ? (
+                  <div className="w-full px-4 py-2 border border-yellow-300 rounded-lg bg-yellow-50 text-yellow-700 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>No repositories available. Using mock data or check GitHub connection.</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setIsDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsDropdownOpen(true)}
+                        placeholder="Search repositories..."
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                    
+                    {/* Dropdown List */}
+                    {isDropdownOpen && filteredRepos.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredRepos.map((repo) => (
+                          <button
+                            key={repo.id}
+                            type="button"
+                            onClick={() => handleRepoSelect(repo)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+                          >
+                            <GitBranch className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {repo.name}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {repo.url}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* No results message */}
+                    {isDropdownOpen && searchTerm && filteredRepos.length === 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-sm text-gray-500">
+                        No repositories found
+                      </div>
+                    )}
+                    
+                    {/* Hidden input to hold the actual URL for form validation */}
+                    <input
+                      type="hidden"
+                      name="repoUrl"
+                      value={formData.repoUrl}
+                      required
+                    />
+                    
+                    {/* Show selected repository URL */}
+                    {formData.repoUrl && formData.repoUrl !== '' && (
+                      <div className="mt-2 flex items-center justify-between text-xs bg-green-50 border border-green-200 px-3 py-2 rounded">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-green-700">✓ Selected:</span>
+                          <span className="ml-2 text-green-600 truncate block">{formData.repoUrl}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, repoUrl: '' }));
+                            setSearchTerm('');
+                          }}
+                          className="ml-2 text-red-500 hover:text-red-700 flex-shrink-0"
+                          title="Clear selection"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Module Number */}

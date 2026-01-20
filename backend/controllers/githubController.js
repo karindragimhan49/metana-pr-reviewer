@@ -37,20 +37,20 @@ const MOCK_PRS = [
 
 const MOCK_REPOS = [
   {
-    name: "student1-project",
-    url: "https://github.com/metana/student1-project",
+    name: "student1",
+    url: "https://github.com/karindragimhan49/Test-grading-repo.git",
     lastUpdated: "2026-01-19T08:30:00Z",
     language: "JavaScript"
   },
   {
     name: "student2-project",
-    url: "https://github.com/metana/student2-project",
+    url: "https://github.com/karindragimhan49/Test-grading-repo.git",
     lastUpdated: "2026-01-18T16:45:00Z",
     language: "TypeScript"
   },
   {
     name: "student3-project",
-    url: "https://github.com/metana/student3-project",
+    url: "https://github.com/karindragimhan49/Python_DevOps.git",
     lastUpdated: "2026-01-19T11:20:00Z",
     language: "Python"
   },

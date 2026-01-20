@@ -30,20 +30,6 @@ function Sidebar() {
       description: 'Dashboard overview'
     },
     {
-      name: 'All Repositories',
-      path: '/dashboard',
-      icon: GitBranch,
-      description: 'View all repositories',
-      scrollTo: 'repositories'
-    },
-    {
-      name: 'Active PRs',
-      path: '/dashboard',
-      icon: GitPullRequest,
-      description: 'Active pull requests',
-      scrollTo: 'prs'
-    },
-    {
       name: 'Grading Assistant',
       path: '/grading-assistant',
       icon: GraduationCap,
@@ -66,14 +52,6 @@ function Sidebar() {
   const handleNavigation = (item) => {
     navigate(item.path);
     setIsMobileMenuOpen(false);
-    
-    // Handle scroll to section if specified
-    if (item.scrollTo) {
-      setTimeout(() => {
-        // This will be handled by Dashboard component
-        window.dispatchEvent(new CustomEvent('navigateToTab', { detail: item.scrollTo }));
-      }, 100);
-    }
   };
 
   const isActive = (path) => {
