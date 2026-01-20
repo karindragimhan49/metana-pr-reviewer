@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import GradingAssistant from './components/GradingAssistant';
 import StudentDashboard from './components/StudentDashboard';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -83,35 +84,13 @@ function StudentRoute({ children }) {
   return children;
 }
 
-// Root Redirect Handler
-function RootRedirect() {
-  const [user, loading] = useAuthState(auth);
-
-  if (loading) return <LoadingScreen />;
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Redirect based on role
-  if (isInstructor(user.email)) {
-    console.log("🎯 Root redirect → /dashboard (Instructor)");
-    return <Navigate to="/dashboard" replace />;
-  } else {
-    console.log("🎯 Root redirect → /student-dashboard (Student)");
-    return <Navigate to="/student-dashboard" replace />;
-  }
-}
-
 function App() {
   return (
     <Router>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        
-        {/* Root - Smart Redirect based on role */}
-        <Route path="/" element={<RootRedirect />} />
         
         {/* Instructor-Only Routes (with Layout/Sidebar) */}
         <Route 
@@ -149,8 +128,8 @@ function App() {
           } 
         />
         
-        {/* Catch all - redirect based on auth */}
-        <Route path="*" element={<RootRedirect />} />
+        {/* Catch all - redirect to landing page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
