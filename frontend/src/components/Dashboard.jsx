@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getPendingReviews, getAllReviews, approveReview, rejectReview, getActivePRs, getAllRepos } from '../services/api';
 import { RefreshCw, LayoutDashboard, GitBranch, GitPullRequest } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
 import HistoryModal from './HistoryModal';
 import ActivePRList from './ActivePRList';
 import RepoTable from './RepoTable';
-import metanaLogo from '../assets/images.png';
 
 function Dashboard() {
   const [reviews, setReviews] = useState([]);
@@ -28,6 +26,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
+    console.log("📊 Dashboard mounted");
     fetchReviews();
     fetchGitHubData();
   }, []);
@@ -149,9 +148,9 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center transition-colors">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-dark-700 border-t-green-600 dark:border-t-neon mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700 border-t-[#ccf621] mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400 text-lg">Initializing Dashboard...</p>
         </div>
       </div>
@@ -160,50 +159,8 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white transition-colors">
-      {/* Navbar - Clean & Professional */}
-      <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-white/10 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo - Consistent with Home */}
-            <div className="flex items-center gap-4">
-              <div className="bg-white dark:bg-white/90 rounded-lg p-1.5 shadow-sm border border-gray-200 dark:border-transparent">
-                <img src={metanaLogo} alt="Metana" className="h-7 w-auto" />
-              </div>
-              <div className="hidden md:block">
-                <h1 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  DevOps Reviewer
-                </h1>
-              </div>
-            </div>
-
-            {/* User Profile & Status */}
-            <div className="flex items-center gap-4">
-              {/* Status Indicator - Only neon accent here */}
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-white/10">
-                <span className="w-1.5 h-1.5 bg-green-600 dark:bg-neon rounded-full"></span>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Online</span>
-              </div>
-              
-              <ThemeToggle />
-              
-              {/* User Info */}
-              <div className="hidden sm:flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Instructor</p>
-                </div>
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center border border-gray-300 dark:border-white/10">
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4 rounded-lg">
