@@ -86,9 +86,8 @@ function Sidebar() {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                Metana DevOps
+                Instructor Portal
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-500">Instructor Portal</p>
             </div>
           </div>
         </div>

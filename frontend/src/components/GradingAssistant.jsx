@@ -15,23 +15,31 @@ import {
   BookOpen
 } from 'lucide-react';
 
-// Course detection logic based on repository name
+// Course detection logic based on repository name (case-insensitive)
 const detectCourse = (repoName) => {
   const name = repoName.toLowerCase();
   
-  if (name.startsWith('solidity-') || name.startsWith('sol-')) {
+  // Check for Solidity patterns
+  if (name.startsWith('solidity-') || name.startsWith('sol-') || name.includes('solidity')) {
     return { name: 'Solidity Bootcamp', color: 'bg-blue-100 text-blue-800', icon: '⚡' };
   }
-  if (name.startsWith('fullstack-') || name.startsWith('fsd-')) {
+  
+  // Check for Full Stack patterns
+  if (name.startsWith('fullstack-') || name.startsWith('fsd-') || name.startsWith('fsd2')) {
     return { name: 'Full Stack Web3', color: 'bg-purple-100 text-purple-800', icon: '🌐' };
   }
-  if (name.startsWith('seca-')) {
+  
+  // Check for Cyber Security patterns
+  if (name.startsWith('seca-') || name.includes('security')) {
     return { name: 'Cyber Security', color: 'bg-red-100 text-red-800', icon: '🔒' };
   }
-  if (name.startsWith('rust-')) {
+  
+  // Check for Rust patterns
+  if (name.startsWith('rust-') || name.includes('rust')) {
     return { name: 'Rust Bootcamp', color: 'bg-orange-100 text-orange-800', icon: '🦀' };
   }
   
+  // Default fallback
   return { name: 'General Engineering', color: 'bg-gray-100 text-gray-800', icon: '💻' };
 };
 

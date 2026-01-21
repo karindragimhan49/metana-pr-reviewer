@@ -37,28 +37,34 @@ const MOCK_PRS = [
 
 const MOCK_REPOS = [
   {
-    name: "student1",
-    url: "https://github.com/karindragimhan49/Test-grading-repo.git",
+    name: "solidity-sol-74-poppy",
+    url: "https://github.com/karindragimhan49/solidity-sol-74-poppy.git",
     lastUpdated: "2026-01-19T08:30:00Z",
+    language: "Solidity"
+  },
+  {
+    name: "fullstack-fsd20b-mousa",
+    url: "https://github.com/metana/fullstack-fsd20b-mousa.git",
+    lastUpdated: "2026-01-18T16:45:00Z",
     language: "JavaScript"
   },
   {
-    name: "student2-project",
-    url: "https://github.com/karindragimhan49/Test-grading-repo.git",
-    lastUpdated: "2026-01-18T16:45:00Z",
-    language: "TypeScript"
-  },
-  {
-    name: "student3-project",
-    url: "https://github.com/karindragimhan49/Python_DevOps.git",
+    name: "seca-seca04-timothy",
+    url: "https://github.com/metana/seca-seca04-timothy.git",
     lastUpdated: "2026-01-19T11:20:00Z",
     language: "Python"
   },
   {
-    name: "bootcamp-resources",
-    url: "https://github.com/metana/bootcamp-resources",
+    name: "rust-bootcamp-v1",
+    url: "https://github.com/metana/rust-bootcamp-v1.git",
+    lastUpdated: "2026-01-20T14:15:00Z",
+    language: "Rust"
+  },
+  {
+    name: "python-automation-script",
+    url: "https://github.com/metana/python-automation-script.git",
     lastUpdated: "2026-01-17T13:00:00Z",
-    language: "Markdown"
+    language: "Python"
   }
 ];
 
