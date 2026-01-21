@@ -12,26 +12,47 @@ const MOCK_PRS = [
   {
     title: "Add user authentication feature",
     author: "student1",
-    repoName: "student1-project",
+    repoName: "solidity-sol-74-poppy",
     createdAt: "2026-01-15T10:30:00Z",
-    url: "https://github.com/metana/student1-project/pull/1",
-    labels: ["feature", "in-progress"]
+    url: "https://github.com/metana/solidity-sol-74-poppy/pull/1",
+    labels: ["feature", "in-progress"],
+    user: { login: "student1" },
+    head: {
+      ref: "module-1",
+      repo: {
+        clone_url: "https://github.com/metana/solidity-sol-74-poppy.git"
+      }
+    }
   },
   {
     title: "Fix navigation bug",
     author: "student2",
-    repoName: "student2-project",
+    repoName: "fullstack-fsd20b-mousa",
     createdAt: "2026-01-18T14:20:00Z",
-    url: "https://github.com/metana/student2-project/pull/3",
-    labels: ["bug", "urgent"]
+    url: "https://github.com/metana/fullstack-fsd20b-mousa/pull/3",
+    labels: ["bug", "urgent"],
+    user: { login: "student2" },
+    head: {
+      ref: "module-2",
+      repo: {
+        clone_url: "https://github.com/metana/fullstack-fsd20b-mousa.git"
+      }
+    }
   },
   {
     title: "Update README documentation",
     author: "student3",
-    repoName: "student3-project",
+    repoName: "rust-bootcamp-v1",
     createdAt: "2026-01-19T09:15:00Z",
-    url: "https://github.com/metana/student3-project/pull/2",
-    labels: ["documentation"]
+    url: "https://github.com/metana/rust-bootcamp-v1/pull/2",
+    labels: ["documentation"],
+    user: { login: "student3" },
+    head: {
+      ref: "module-3",
+      repo: {
+        clone_url: "https://github.com/metana/rust-bootcamp-v1.git"
+      }
+    }
   }
 ];
 
@@ -110,7 +131,15 @@ const getActivePRs = async (req, res) => {
           repoName: repo.name,
           createdAt: pr.created_at,
           url: pr.html_url,
-          labels: pr.labels.map(label => label.name)
+          labels: pr.labels.map(label => label.name),
+          // Add fields needed for grading assistant integration
+          user: { login: pr.user.login },
+          head: {
+            ref: pr.head.ref,
+            repo: {
+              clone_url: pr.head.repo?.clone_url || `https://github.com/${GITHUB_ORG}/${repo.name}.git`
+            }
+          }
         }));
 
         allPRs.push(...transformedPRs);

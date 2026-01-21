@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { 
   CheckCircle2, 
@@ -44,6 +45,8 @@ const detectCourse = (repoName) => {
 };
 
 const GradingAssistant = () => {
+  const location = useLocation();
+  
   const [formData, setFormData] = useState({
     studentName: '',
     repoUrl: '',
@@ -69,6 +72,9 @@ const GradingAssistant = () => {
   
   // Detected course
   const [detectedCourse, setDetectedCourse] = useState(null);
+  
+  // Notion fetching state
+  const [fetchingRules, setFetchingRules] = useState(false);
 
   // Fetch repositories on mount
   useEffect(() => {
@@ -89,6 +95,7 @@ const GradingAssistant = () => {
   }, []);
 
   // Close dropdown when clicking outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest('.repo-dropdown-container')) {
@@ -99,6 +106,42 @@ const GradingAssistant = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Auto-fill form from navigation state (when coming from PR list)
+  useEffect(() => {
+    if (location.state?.repoUrl && location.state?.branchName) {
+      console.log('🔗 Auto-filling form from PR navigation:', location.state);
+      
+      const { repoUrl, branchName, studentName } = location.state;
+      
+      // Extract repo name from URL for display
+      const repoMatch = repoUrl.match(/github\.com\/[^\/]+\/([^\/\.]+)/);
+      const repoName = repoMatch ? repoMatch[1] : 'selected-repo';
+      
+      // Set form data
+      setFormData({
+        repoUrl,
+        branchName,
+        studentName: studentName || '',
+        customInstructions: ''
+      });
+      
+      // Set search term and selected repo for display
+      setSearchTerm(repoName);
+      setSelectedRepo({
+        name: repoName,
+        url: repoUrl
+      });
+      
+      // Detect course and fetch branches
+      const course = detectCourse(repoName);
+      setDetectedCourse(course);
+      fetchBranches(repoUrl);
+      
+      // Clear the state to prevent re-filling on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Fetch branches when a repository is selected
   const fetchBranches = async (repoUrl) => {
@@ -122,6 +165,48 @@ const GradingAssistant = () => {
       setBranches([{ name: 'main', protected: true }]); // Fallback
     } finally {
       setBranchesLoading(false);
+    }
+  };
+  
+  // Fetch grading rules from Notion when both repo and branch are selected
+  const fetchGradingRules = async (repoName, branchName) => {
+    if (!repoName || !branchName) return;
+    
+    try {
+      setFetchingRules(true);
+      setFormData(prev => ({ ...prev, customInstructions: 'Fetching rules from Notion...' }));
+      
+      console.log('📚 Fetching grading rules from Notion:', { repoName, branchName });
+      
+      const response = await axios.post('http://localhost:3000/api/notion/rules', {
+        repoName,
+        branchName
+      });
+      
+      if (response.data.success) {
+        console.log('✅ Successfully fetched rules from Notion');
+        setFormData(prev => ({
+          ...prev,
+          customInstructions: response.data.gradingInstructions
+        }));
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch rules');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching grading rules:', err);
+      
+      // Show error message in textarea
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to fetch grading rules from Notion';
+      setFormData(prev => ({
+        ...prev,
+        customInstructions: `❌ ${errorMsg}\n\n` +
+          'Please enter grading instructions manually or check:\n' +
+          '1. NOTION_API_KEY is set in backend .env\n' +
+          '2. Notion Page ID is configured in notionMap.js\n' +
+          '3. The Notion page contains content'
+      }));
+    } finally {
+      setFetchingRules(false);
     }
   };
   
@@ -153,6 +238,17 @@ const GradingAssistant = () => {
   const filteredRepos = repositories.filter(repo =>
     repo.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Auto-fetch grading rules when both repo and branch are selected
+  useEffect(() => {
+    if (selectedRepo && formData.branchName) {
+      // Extract repo name from selected repo
+      const repoName = selectedRepo.name;
+      
+      console.log('🔄 Repo and branch selected, fetching grading rules...');
+      fetchGradingRules(repoName, formData.branchName);
+    }
+  }, [selectedRepo, formData.branchName]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -419,6 +515,11 @@ Files Analyzed: ${result.results.filesAnalyzed || 'N/A'}
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <BookOpen className="inline-block w-4 h-4 mr-1" />
                 4. Grading Instructions / Custom Rubric
+                {fetchingRules && (
+                  <span className="ml-2 text-xs text-blue-600 animate-pulse">
+                    🔄 Fetching from Notion...
+                  </span>
+                )}
               </label>
               <textarea
                 value={formData.customInstructions}
@@ -426,10 +527,15 @@ Files Analyzed: ${result.results.filesAnalyzed || 'N/A'}
                 placeholder="Example:&#10;- Check for gas optimization in smart contracts&#10;- Verify re-entrancy guard is implemented&#10;- Ensure proper event emission&#10;- Check for appropriate access controls&#10;- Verify error handling&#10;&#10;Award points based on:&#10;- Gas efficiency (30 points)&#10;- Security best practices (40 points)&#10;- Code quality and documentation (30 points)"
                 required
                 rows={10}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
+                disabled={fetchingRules}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm disabled:bg-gray-50 disabled:cursor-wait"
               />
               <p className="mt-2 text-xs text-gray-500">
-                💡 Tip: Be specific about what you want to check. The AI will follow these instructions strictly.
+                {fetchingRules ? (
+                  '⏳ Loading grading rules from Notion database...'
+                ) : (
+                  '💡 Tip: Be specific about what you want to check. The AI will follow these instructions strictly.'
+                )}
               </p>
             </div>
 

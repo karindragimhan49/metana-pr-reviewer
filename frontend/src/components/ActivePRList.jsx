@@ -146,15 +146,28 @@ function ActivePRList({ prs, loading, onRefresh }) {
 
                   {/* Action Button */}
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <a
-                      href={pr.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => {
+                        // Extract repo URL and branch from PR data
+                        const repoUrl = pr.head?.repo?.clone_url || `https://github.com/metana/${pr.repoName}.git`;
+                        const branchName = pr.head?.ref || 'main';
+                        const studentName = pr.user?.login || pr.author;
+                        
+                        console.log('🔍 Navigating to Grading Assistant with:', { repoUrl, branchName, studentName });
+                        
+                        navigate('/grading-assistant', {
+                          state: {
+                            repoUrl,
+                            branchName,
+                            studentName
+                          }
+                        });
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
                     >
                       Review
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    </button>
                   </td>
                 </tr>
               ))}

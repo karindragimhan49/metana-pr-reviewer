@@ -10,6 +10,7 @@ const webhookRoutes = require('./src/routes/webhook');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const gradingRoutes = require('./routes/gradingRoutes');
 const githubRoutes = require('./routes/githubRoutes');
+const notionRoutes = require('./routes/notionRoutes');
 
 // Middleware
 app.use(cors({
@@ -32,6 +33,7 @@ app.use('/webhook', webhookRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/grade', gradingRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/notion', notionRoutes);
 
 // Start server
 app.listen(PORT, () => {
