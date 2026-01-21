@@ -3,6 +3,8 @@
 ## Overview
 This guide walks you through setting up the Notion integration for the dynamic grading rules engine.
 
+**✨ New Feature**: Now supports **recursive fetching** of nested content! Toggle lists, nested bullets, and columns are all extracted automatically.
+
 ---
 
 ## Prerequisites
