@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // API Base URL Configuration for Vercel Deployment
-// In production (Vercel), use relative path with /api prefix (handled by vercel.json rewrites)
-// In development, use localhost backend server
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3000/api');
+// Uses relative path '/api' for both development and production
+// - In development: Vite proxy forwards /api requests to http://localhost:3000
+// - In production: Vercel rewrites handle /api routing to backend serverless functions
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 console.log('API Base URL:', API_BASE_URL, 'Mode:', import.meta.env.MODE);
 
@@ -81,7 +81,7 @@ export const rejectReview = async (reviewId) => {
  */
 export const getActivePRs = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/github/prs');
+    const response = await axios.get('/api/github/prs');
     return response.data;
   } catch (error) {
     console.error('Error fetching active PRs:', error);
@@ -95,7 +95,7 @@ export const getActivePRs = async () => {
  */
 export const getAllRepos = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/github/repos');
+    const response = await axios.get('/api/github/repos');
     return response.data;
   } catch (error) {
     console.error('Error fetching repositories:', error);

@@ -81,7 +81,7 @@ const GradingAssistant = () => {
     const fetchRepositories = async () => {
       try {
         setReposLoading(true);
-        const response = await axios.get('http://localhost:3000/api/github/repos');
+        const response = await axios.get('/api/github/repos');
         setRepositories(response.data.data || []);
       } catch (err) {
         console.error('Error fetching repositories:', err);
@@ -157,7 +157,7 @@ const GradingAssistant = () => {
       
       const [, owner, repo] = match;
       
-      const response = await axios.get(`http://localhost:3000/api/github/branches/${owner}/${repo}`);
+      const response = await axios.get(`/api/github/branches/${owner}/${repo}`);
       setBranches(response.data.data || []);
       
     } catch (err) {
@@ -178,7 +178,7 @@ const GradingAssistant = () => {
       
       console.log('📚 Fetching grading rules from Notion:', { repoName, branchName });
       
-      const response = await axios.post('http://localhost:3000/api/notion/rules', {
+      const response = await axios.post('/api/notion/rules', {
         repoName,
         branchName
       });
@@ -277,7 +277,7 @@ const GradingAssistant = () => {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/grade', formData);
+      const response = await axios.post('/api/grade', formData);
 
       if (response.data.success) {
         setResult(response.data);
