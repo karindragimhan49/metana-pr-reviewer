@@ -6,6 +6,11 @@
 const simpleGit = require('simple-git');
 const fs = require('fs-extra');
 const path = require('path');
+const os = require('os');
+
+// Use system temp directory for Vercel compatibility
+// Vercel's serverless environment has read-only filesystem except /tmp
+const TEMP_DIR = path.join(os.tmpdir(), 'metana-submissions');
 
 /**
  * Clones a GitHub repository to a temporary local directory
@@ -21,12 +26,13 @@ async function cloneRepo(repoUrl, studentName, branchName = null) {
     const timestamp = Date.now();
     const folderName = `${studentName}-${timestamp}`;
     
-    // Define the temporary submission path
-    const tempPath = path.join(process.cwd(), 'temp_submissions', folderName);
+    // Define the temporary submission path using system temp directory
+    const tempPath = path.join(TEMP_DIR, folderName);
     
-    // Ensure temp_submissions directory exists
-    await fs.ensureDir(path.join(process.cwd(), 'temp_submissions'));
+    // Ensure temp directory exists
+    await fs.ensureDir(TEMP_DIR);
     
+    console.log(`[Cloner] Using temp directory: ${TEMP_DIR}`);
     console.log(`[Cloner] Cloning repository: ${repoUrl}`);
     if (branchName) {
       console.log(`[Cloner] Target branch: ${branchName}`);
