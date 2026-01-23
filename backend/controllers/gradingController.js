@@ -62,25 +62,26 @@ async function gradeSubmission(req, res) {
     };
     
     // Step 4.5: Save the review to the database
-    try {
-      const savedReview = await prisma.review.create({
-        data: {
-          repoName: repoUrl,
-          branchName: branchName,
-          studentName: studentName || null,
-          reviewContent: JSON.stringify({
-            feedback: gradingResults.codeQuality?.feedback || 'No feedback available',
-            results: gradingResults,
-            summary: response.summary
-          }),
-          score: `${response.summary.totalScore}/${response.summary.maxScore}`,
-          status: 'PENDING'
-        }
-      });
-      response.reviewId = savedReview.id;
-    } catch (dbError) {
-      console.error(`[GradingController] Failed to save review to database: ${dbError.message}`);
-    }
+    console.log('[GradingController] Saving review to database...');
+    const savedReview = await prisma.review.create({
+      data: {
+        repoName: repoUrl,
+        branchName: branchName,
+        studentName: studentName || null,
+        reviewContent: JSON.stringify({
+          feedback: gradingResults.codeQuality?.feedback || 'No feedback available',
+          results: gradingResults,
+          summary: response.summary
+        }),
+        score: `${response.summary.totalScore}/${response.summary.maxScore}`,
+        status: 'PENDING'
+      }
+    });
+    console.log(`[GradingController] Review saved successfully with ID: ${savedReview.id}`);
+    
+    // Add saved review details to response
+    response.reviewId = savedReview.id;
+    response.savedAt = savedReview.createdAt;
     
     console.log(`[GradingController] Grading completed successfully`);
     console.log(`  Score: ${response.summary.totalScore}/${response.summary.maxScore} (${response.summary.percentage}%)`);
