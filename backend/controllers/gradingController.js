@@ -25,20 +25,35 @@ async function gradeSubmission(req, res) {
   
   try {
     // ============================================================
-    // STEP 1: RECEIVE INPUTS
+    // STEP 1: RECEIVE INPUTS AND NORMALIZE
     // ============================================================
-    const { repoName, branchName, studentName, customInstructions } = req.body;
+    let { repoName, repoUrl, branchName, studentName, customInstructions } = req.body;
     
     console.log(`[GradingController] Received grading request:`);
-    console.log(`  Repository: ${repoName || 'N/A'}`);
+    console.log(`  Repository Name: ${repoName || 'N/A'}`);
+    console.log(`  Repository URL: ${repoUrl || 'N/A'}`);
     console.log(`  Branch/Module: ${branchName || 'N/A'}`);
     console.log(`  Student: ${studentName || 'N/A'}`);
+    
+    // Handle repoName extraction if missing but repoUrl is provided
+    if (!repoName && repoUrl) {
+      const match = repoUrl.match(/github\.com\/([^\/]+\/[^\/\.]+)/);
+      if (match) {
+        repoName = match[1];
+        console.log(`[GradingController] Extracted repoName from URL: ${repoName}`);
+      }
+    }
+    
+    // Use repoUrl as repoName if we still don't have repoName (fallback)
+    if (!repoName && repoUrl) {
+      repoName = repoUrl;
+    }
     
     // Validate required fields
     if (!repoName || typeof repoName !== 'string') {
       return res.status(400).json({
         success: false,
-        error: 'Invalid or missing repoName'
+        error: 'Missing repoName or repoUrl. Please provide a valid repository identifier.'
       });
     }
     
@@ -47,6 +62,11 @@ async function gradeSubmission(req, res) {
         success: false,
         error: 'Invalid or missing branchName (Module)'
       });
+    }
+    
+    // Handle optional studentName - if empty string or null, set to null
+    if (!studentName || studentName.trim() === '') {
+      studentName = null;
     }
     
     // ============================================================
@@ -105,18 +125,21 @@ async function gradeSubmission(req, res) {
       });
     }
     
+    // Determine the URL to use for cloning (prefer repoUrl, fallback to repoName if it looks like a URL)
+    const cloneUrl = repoUrl || repoName;
+    
     // Validate GitHub URL
-    if (!isValidGitHubUrl(repoName)) {
+    if (!isValidGitHubUrl(cloneUrl)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid GitHub URL format'
+        error: 'Invalid GitHub URL format. Please provide a valid repository URL.'
       });
     }
     
     // Clone the repository
     console.log('[GradingController] Cloning repository...');
     const submitterName = studentName || 'submission';
-    clonedPath = await cloneRepo(repoName, submitterName, branchName);
+    clonedPath = await cloneRepo(cloneUrl, submitterName, branchName);
     
     // Perform AI-based grading
     console.log('[GradingController] Calling OpenAI API for grading...');

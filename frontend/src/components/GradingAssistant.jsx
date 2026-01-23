@@ -270,23 +270,51 @@ const GradingAssistant = () => {
       return;
     }
     
-    console.log('📤 Submitting grading request:', formData);
+    // Extract repoName from selectedRepo or repoUrl
+    let repoName = '';
+    if (selectedRepo && selectedRepo.name) {
+      // If we have a selected repo object, use its name
+      repoName = selectedRepo.name;
+    } else {
+      // Otherwise, extract from URL (e.g., "https://github.com/owner/repo.git" -> "owner/repo")
+      const match = formData.repoUrl.match(/github\.com\/([^\/]+\/[^\/\.]+)/);
+      if (match) {
+        repoName = match[1];
+      } else {
+        setError('Invalid repository URL format');
+        return;
+      }
+    }
+    
+    // Prepare the payload with both repoName and repoUrl
+    const payload = {
+      repoName: repoName,
+      repoUrl: formData.repoUrl,
+      branchName: formData.branchName,
+      studentName: formData.studentName || '', // Empty string is OK
+      customInstructions: formData.customInstructions
+    };
+    
+    console.log('📤 Submitting grading request:', payload);
     
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await axios.post('/api/grade', formData);
+      const response = await axios.post('/api/grade', payload);
 
       if (response.data.success) {
         setResult(response.data);
+        console.log('✅ Grading completed successfully:', response.data);
       } else {
         throw new Error(response.data.error || 'Grading failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'An error occurred while grading');
-      console.error('Grading error:', err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'An error occurred while grading';
+      setError(errorMsg);
+      console.error('❌ Grading error:', err);
+      console.error('Error response:', err.response?.data);
     } finally {
       setLoading(false);
     }

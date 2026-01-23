@@ -457,7 +457,7 @@ Review ID: ${review.id}
                   {selectedReview.repoName && (
                     <div className="mb-5">
                       <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Repository</label>
-                      <div className="text-sm text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-md font-mono text-xs break-all">
+                      <div className="text-xs text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-md font-mono break-all">
                         {selectedReview.repoName}
                       </div>
                     </div>
