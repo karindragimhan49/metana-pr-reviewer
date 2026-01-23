@@ -13,11 +13,14 @@ datasource db {
 
 model Review {
   id              String   @id @default(uuid())
-  repoName        String
-  branchName      String
-  studentName     String?
-  reviewContent   String   @db.Text
-  score           String?
-  status          String   @default("PENDING")
-  createdAt       DateTime @default(now())
+  repoName        String   // GitHub repository URL
+  branchName      String   // Branch name (Module)
+  studentName     String?  // Optional student name
+  reviewContent   String   @db.Text // JSON string with results and summary
+  score           String?  // Score in format "75/100"
+  status          String   @default("COMPLETED") // Status of the review
+  createdAt       DateTime @default(now()) // Timestamp of review creation
+  
+  // Composite index for faster lookups when checking for existing reviews
+  @@index([repoName, branchName, studentName])
 }

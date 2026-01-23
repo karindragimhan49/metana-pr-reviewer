@@ -10,116 +10,165 @@ const { cloneRepo, cleanupRepo, isValidGitHubUrl } = require('../grading-engine/
 const module02Handler = require('../grading-engine/module-handlers/module02');
 
 /**
- * Main grading endpoint handler
+ * Main grading endpoint handler - Refactored with Check-First Logic
  * POST /api/grade
- * Body: { repoUrl, branchName, customInstructions, studentName }
+ * Body: { repoName, branchName, studentName, customInstructions (optional) }
+ * 
+ * Flow:
+ * 1. Extract inputs (repoName, branchName, studentName)
+ * 2. Check database for existing review (CACHE CHECK)
+ * 3. If found: return cached data immediately (NO OpenAI call)
+ * 4. If not found: call OpenAI, save to DB, return new data
  */
 async function gradeSubmission(req, res) {
   let clonedPath = null;
   
   try {
-    // Step 1: Extract and validate request data
-    const { repoUrl, branchName, customInstructions, studentName } = req.body;
+    // ============================================================
+    // STEP 1: RECEIVE INPUTS
+    // ============================================================
+    const { repoName, branchName, studentName, customInstructions } = req.body;
     
     console.log(`[GradingController] Received grading request:`);
+    console.log(`  Repository: ${repoName || 'N/A'}`);
+    console.log(`  Branch/Module: ${branchName || 'N/A'}`);
     console.log(`  Student: ${studentName || 'N/A'}`);
-    console.log(`  Branch: ${branchName || 'default'}`);
-    console.log(`  Repository: ${repoUrl}`);
-    console.log(`  Custom Instructions: ${customInstructions ? 'Yes' : 'No'}`);
     
     // Validate required fields
-    const validationError = validateRequestData(repoUrl, branchName, customInstructions);
-    if (validationError) {
+    if (!repoName || typeof repoName !== 'string') {
       return res.status(400).json({
         success: false,
-        error: validationError
+        error: 'Invalid or missing repoName'
       });
     }
     
-    // Step 1.5: Check if this submission was already graded (to prevent wasting OpenAI credits)
-    console.log('[GradingController] Checking if submission was already graded...');
-    const existingReview = await checkExistingReview(repoUrl, branchName, studentName);
+    if (!branchName || typeof branchName !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or missing branchName (Module)'
+      });
+    }
     
+    // ============================================================
+    // STEP 2: CHECK CACHE (DATABASE) - PREVENT WASTING CREDITS
+    // ============================================================
+    console.log('[GradingController] Checking database for existing review...');
+    
+    const whereClause = {
+      repoName: repoName,
+      branchName: branchName,
+      studentName: studentName || null
+    };
+    
+    const existingReview = await prisma.review.findFirst({
+      where: whereClause,
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    // ============================================================
+    // STEP 3: CACHE HIT - RETURN EXISTING DATA (NO OpenAI CALL)
+    // ============================================================
     if (existingReview) {
-      console.log(`[GradingController] Found existing review (ID: ${existingReview.id})`);
-      console.log('[GradingController] Returning cached review (no OpenAI call needed)');
+      console.log(`[GradingController] ✅ CACHE HIT - Review found (ID: ${existingReview.id})`);
+      console.log('[GradingController] Returning cached data (NO OpenAI call)');
       
       // Parse the stored review content
       const parsedContent = JSON.parse(existingReview.reviewContent);
       
-      // Return the existing review with alreadyGraded flag
       return res.status(200).json({
         success: true,
-        alreadyGraded: true,
+        source: 'database', // Debug flag
         student: existingReview.studentName || 'Unknown',
         branch: existingReview.branchName,
-        repositoryUrl: existingReview.repoName,
+        repository: existingReview.repoName,
         results: parsedContent.results,
         summary: parsedContent.summary,
         reviewId: existingReview.id,
-        savedAt: existingReview.createdAt,
-        timestamp: existingReview.createdAt,
-        message: 'This submission was already graded. Returning existing review.'
+        createdAt: existingReview.createdAt,
+        timestamp: existingReview.createdAt
       });
     }
     
-    console.log('[GradingController] No existing review found. Proceeding with new grading...');
+    // ============================================================
+    // STEP 4: CACHE MISS - CALL OpenAI AND SAVE TO DATABASE
+    // ============================================================
+    console.log('[GradingController] ❌ CACHE MISS - No existing review found');
+    console.log('[GradingController] Proceeding with new grading (OpenAI will be called)...');
     
-    // Step 2: Clone the repository with specific branch
+    // Validate custom instructions if we're calling OpenAI
+    if (!customInstructions || typeof customInstructions !== 'string' || customInstructions.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'customInstructions required for new grading'
+      });
+    }
+    
+    // Validate GitHub URL
+    if (!isValidGitHubUrl(repoName)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid GitHub URL format'
+      });
+    }
+    
+    // Clone the repository
     console.log('[GradingController] Cloning repository...');
     const submitterName = studentName || 'submission';
-    clonedPath = await cloneRepo(repoUrl, submitterName, branchName);
+    clonedPath = await cloneRepo(repoName, submitterName, branchName);
     
-    // Step 3: Perform AI-based grading with custom instructions
-    console.log(`[GradingController] Running AI-powered grading...`);
+    // Perform AI-based grading
+    console.log('[GradingController] Calling OpenAI API for grading...');
     const gradingResults = await performCustomGrading(clonedPath, customInstructions, branchName);
     
-    // Step 4: Prepare response
-    const response = {
-      success: true,
-      student: studentName || 'Unknown',
-      branch: branchName,
-      repositoryUrl: repoUrl,
-      results: gradingResults,
-      summary: {
-        totalScore: gradingResults.totalScore,
-        maxScore: gradingResults.maxTotalScore,
-        percentage: ((gradingResults.totalScore / gradingResults.maxTotalScore) * 100).toFixed(2),
-        status: getGradingStatus(gradingResults.totalScore, gradingResults.maxTotalScore)
-      },
-      timestamp: new Date().toISOString()
+    // Prepare the response structure
+    const summary = {
+      totalScore: gradingResults.totalScore,
+      maxScore: gradingResults.maxTotalScore,
+      percentage: ((gradingResults.totalScore / gradingResults.maxTotalScore) * 100).toFixed(2),
+      status: getGradingStatus(gradingResults.totalScore, gradingResults.maxTotalScore)
     };
     
-    // Step 4.5: Save the review to the database
-    console.log('[GradingController] Saving review to database...');
+    // Save to database IMMEDIATELY after getting AI response
+    console.log('[GradingController] Saving new review to database...');
     const savedReview = await prisma.review.create({
       data: {
-        repoName: repoUrl,
+        repoName: repoName,
         branchName: branchName,
         studentName: studentName || null,
         reviewContent: JSON.stringify({
           feedback: gradingResults.codeQuality?.feedback || 'No feedback available',
           results: gradingResults,
-          summary: response.summary
+          summary: summary
         }),
-        score: `${response.summary.totalScore}/${response.summary.maxScore}`,
-        status: 'PENDING'
+        score: `${summary.totalScore}/${summary.maxScore}`,
+        status: 'COMPLETED'
       }
     });
-    console.log(`[GradingController] Review saved successfully with ID: ${savedReview.id}`);
+    console.log(`[GradingController] ✅ Review saved to database (ID: ${savedReview.id})`);
     
-    // Add saved review details to response
-    response.reviewId = savedReview.id;
-    response.savedAt = savedReview.createdAt;
+    // Return the new AI result
+    const response = {
+      success: true,
+      source: 'openai', // Debug flag - indicates this was a new AI call
+      student: studentName || 'Unknown',
+      branch: branchName,
+      repository: repoName,
+      results: gradingResults,
+      summary: summary,
+      reviewId: savedReview.id,
+      createdAt: savedReview.createdAt,
+      timestamp: new Date().toISOString()
+    };
     
     console.log(`[GradingController] Grading completed successfully`);
-    console.log(`  Score: ${response.summary.totalScore}/${response.summary.maxScore} (${response.summary.percentage}%)`);
+    console.log(`  Score: ${summary.totalScore}/${summary.maxScore} (${summary.percentage}%)`);
     
-    // Step 5: Send response
     res.status(200).json(response);
     
   } catch (error) {
-    console.error(`[GradingController] Error during grading: ${error.message}`);
+    console.error(`[GradingController] ❌ Error during grading: ${error.message}`);
     console.error(error.stack);
     
     res.status(500).json({
@@ -130,89 +179,18 @@ async function gradeSubmission(req, res) {
     });
     
   } finally {
-    // Step 6: Always cleanup the cloned repository (even if grading failed)
+    // Always cleanup the cloned repository (if it exists)
     if (clonedPath) {
       try {
-        console.log('[GradingController] Starting cleanup...');
+        console.log('[GradingController] Cleaning up cloned repository...');
         await cleanupRepo(clonedPath);
         console.log('[GradingController] Cleanup completed');
       } catch (cleanupError) {
         console.error(`[GradingController] Cleanup failed: ${cleanupError.message}`);
-        // Log but don't throw - we don't want cleanup errors to affect the response
       }
     }
   }
 }
-
-/**
- * Validates the request data
- * @param {string} repoUrl - GitHub repository URL
- * @param {string} branchName - Branch name
- * @param {string} customInstructions - Custom grading instructions
- * @returns {string|null} - Error message or null if valid
- */
-function validateRequestData(repoUrl, branchName, customInstructions) {
-  if (!repoUrl || typeof repoUrl !== 'string') {
-    return 'Invalid or missing repoUrl';
-  }
-  
-  if (!isValidGitHubUrl(repoUrl)) {
-    return 'Invalid GitHub URL format';
-  }
-  
-  if (!branchName || typeof branchName !== 'string' || branchName.trim() === '') {
-    return 'Invalid or missing branchName';
-  }
-  
-  if (!customInstructions || typeof customInstructions !== 'string' || customInstructions.trim() === '') {
-    return 'Invalid or missing customInstructions';
-  }
-  
-  return null;
-}
-
-/**
- * Checks if a review already exists for the given submission
- * This prevents wasting OpenAI credits by re-grading the same submission
- * @param {string} repoName - Repository URL/name
- * @param {string} branchName - Branch name
- * @param {string|null} studentName - Student name (optional)
- * @returns {Promise<Object|null>} - Existing review or null if not found
- */
-async function checkExistingReview(repoName, branchName, studentName) {
-  try {
-    // Build the query conditions
-    const whereClause = {
-      repoName: repoName,
-      branchName: branchName
-    };
-    
-    // If studentName is provided, include it in the search
-    // If not provided, search for reviews with null studentName
-    if (studentName) {
-      whereClause.studentName = studentName;
-    } else {
-      whereClause.studentName = null;
-    }
-    
-    // Search for an existing review
-    const existingReview = await prisma.review.findFirst({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc' // Get the most recent review if multiple exist
-      }
-    });
-    
-    return existingReview;
-    
-  } catch (error) {
-    console.error('[GradingController] Error checking existing review:', error);
-    // If there's an error checking the database, return null to proceed with grading
-    // This ensures the service continues to work even if DB check fails
-    return null;
-  }
-}
-
 
 /**
  * Performs custom AI-based grading using instructor-provided rules
