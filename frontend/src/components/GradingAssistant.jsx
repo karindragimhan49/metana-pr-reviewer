@@ -303,6 +303,7 @@ const GradingAssistant = () => {
 Student: ${result.student}
 Branch: ${result.branch}
 Course: ${detectedCourse?.name || 'N/A'}
+Repository: ${result.repository || 'N/A'}
 Score: ${result.summary.totalScore}/${result.summary.maxScore} (${result.summary.percentage}%)
 Status: ${result.summary.status}
 
@@ -319,6 +320,7 @@ ${result.results.codeQuality.feedback}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Generated: ${new Date().toLocaleString()}
 Files Analyzed: ${result.results.filesAnalyzed || 'N/A'}
+Review ID: ${result.reviewId || 'N/A'}
     `.trim();
 
     navigator.clipboard.writeText(summary);
@@ -354,10 +356,10 @@ Files Analyzed: ${result.results.filesAnalyzed || 'N/A'}
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Dynamic Rule-Based Grading Engine
+            Grading Assistant
           </h1>
           <p className="text-gray-600">
-            Instructor-only tool for branch-based grading with custom criteria
+            AI-powered grading with custom criteria - Generate, Save, and Copy reports
           </p>
         </div>
 

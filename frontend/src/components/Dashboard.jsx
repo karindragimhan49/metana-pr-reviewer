@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getPendingReviews, getAllReviews, approveReview, rejectReview, getActivePRs, getAllRepos } from '../services/api';
-import { RefreshCw, LayoutDashboard, GitBranch, GitPullRequest } from 'lucide-react';
+import { getAllReviews, getActivePRs, getAllRepos } from '../services/api';
+import { RefreshCw, LayoutDashboard, GitBranch, GitPullRequest, Copy, CheckCheck } from 'lucide-react';
 import HistoryModal from './HistoryModal';
 import ActivePRList from './ActivePRList';
 import RepoTable from './RepoTable';
@@ -9,12 +9,9 @@ function Dashboard() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [approvingId, setApprovingId] = useState(null);
-  const [rejectingId, setRejectingId] = useState(null);
   const [selectedReview, setSelectedReview] = useState(null);
-  const [processedCount, setProcessedCount] = useState(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [allReviews, setAllReviews] = useState([]);
+  const [copied, setCopied] = useState(false);
   
   // GitHub data states
   const [activePRs, setActivePRs] = useState([]);
@@ -35,9 +32,10 @@ function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getPendingReviews();
-      setReviews(data.data || []);
-      setProcessedCount(data.processedCount || 0);
+      const data = await getAllReviews();
+      // Filter only GRADED reviews and sort by most recent
+      const gradedReviews = (data.data || []).filter(r => r.status === 'GRADED');
+      setReviews(gradedReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (err) {
       setError('Failed to fetch reviews. Make sure the backend is running on port 3000.');
       console.error(err);
@@ -73,67 +71,35 @@ function Dashboard() {
   };
 
   const handleOpenHistory = async () => {
-    try {
-      const data = await getAllReviews();
-      setAllReviews(data.data || []);
-      setIsHistoryModalOpen(true);
-    } catch (err) {
-      alert('Failed to fetch review history');
-      console.error(err);
-    }
+    setIsHistoryModalOpen(true);
   };
 
-  const handleApprove = async (reviewId) => {
-    if (!confirm('Are you sure you want to approve this review and post it to GitHub?')) {
-      return;
-    }
+  const handleCopyReport = (review) => {
+    const reviewContent = JSON.parse(review.reviewContent || '{}');
+    const summary = reviewContent.summary || {};
+    const results = reviewContent.results || {};
+    
+    const reportText = `
+📊 GRADING REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    try {
-      setApprovingId(reviewId);
-      const result = await approveReview(reviewId);
-      
-      if (result.success) {
-        alert('Review approved successfully!' + 
-          (result.github.commentPosted 
-            ? '\n✓ Comment posted to GitHub.' 
-            : '\n⚠ Note: Could not post to GitHub. Check your GITHUB_TOKEN in .env')
-        );
-        
-        setReviews(reviews.filter(review => review.id !== reviewId));
-        setSelectedReview(null);
-        setProcessedCount(prev => prev + 1);
-      }
-    } catch (err) {
-      alert('Failed to approve review: ' + (err.response?.data?.message || err.message));
-      console.error(err);
-    } finally {
-      setApprovingId(null);
-    }
-  };
+Student: ${review.studentName || 'Unknown'}
+Branch: ${review.branchName}
+Repository: ${review.repoName}
+Score: ${review.score}
+Status: ${review.status}
 
-  const handleReject = async (reviewId) => {
-    if (!confirm('Are you sure you want to reject this review?')) {
-      return;
-    }
+🤖 AI FEEDBACK:
+${reviewContent.feedback || 'No feedback available'}
 
-    try {
-      setRejectingId(reviewId);
-      const result = await rejectReview(reviewId);
-      
-      if (result.success) {
-        alert('Review rejected successfully!');
-        
-        // Remove from list
-        setReviews(reviews.filter(review => review.id !== reviewId));
-        setSelectedReview(null);
-        setProcessedCount(prev => prev + 1);
-      }
-    } catch (err) {
-      alert('Failed to reject review: ' + (err.response?.data?.message || err.message));
-      console.error(err);
-    } finally {
-      setRejectingId(null);
-    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generated: ${new Date(review.createdAt).toLocaleString()}
+Review ID: ${review.id}
+    `.trim();
+    
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const formatDate = (dateString) => {
@@ -206,11 +172,11 @@ function Dashboard() {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-6 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Pending Reviews</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Graded Reviews</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{reviews.length}</p>
               </div>
-              <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600 dark:text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
@@ -223,12 +189,12 @@ function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Processed</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1 group-hover:text-green-600 dark:group-hover:text-neon transition-colors">{processedCount}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">View All</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-1 group-hover:text-green-600 dark:group-hover:text-neon transition-colors">History</p>
               </div>
               <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-neon/10 transition-colors">
                 <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
@@ -386,22 +352,22 @@ function Dashboard() {
         <div className="mt-8">
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pending Reviews List */}
+          {/* Recent Grading History List */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-5 transition-colors">
-              <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Pending Reviews</h2>
+              <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Recent Grading History</h2>
 
               {reviews.length === 0 ? (
                 <div className="text-center py-12">
                   <svg className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">No pending reviews</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">All caught up!</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">No grading history yet</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">Grade your first submission!</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
-                  {reviews.map((review) => (
+                  {reviews.slice(0, 20).map((review) => (
                     <div
                       key={review.id}
                       onClick={() => setSelectedReview(review)}
@@ -412,11 +378,16 @@ function Dashboard() {
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <code className="text-xs font-mono text-gray-700 dark:text-gray-300 px-2 py-1 bg-gray-200 dark:bg-black/40 rounded">
-                          {review.branchName}
-                        </code>
-                        <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 rounded border border-yellow-200 dark:border-yellow-500/20">
-                          Pending
+                        <div className="flex-1 min-w-0">
+                          <code className="text-xs font-mono text-gray-700 dark:text-gray-300 px-2 py-1 bg-gray-200 dark:bg-black/40 rounded">
+                            {review.branchName}
+                          </code>
+                          {review.studentName && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{review.studentName}</p>
+                          )}
+                        </div>
+                        <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-500 rounded border border-green-200 dark:border-green-500/20 flex-shrink-0">
+                          {review.score}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-500">
@@ -429,7 +400,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Review Inspecto Panel */}
+          {/* Review Inspector Panel */}
           <div className="lg:col-span-2">
             {selectedReview ? (
               <div className="bg-white dark:bg-gray-900 
@@ -442,10 +413,10 @@ function Dashboard() {
                 border-b border-gray-200 dark:border-white/10 
                 transition-colors">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-medium text-gray-300">Code Inspector</h2>
+                    <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Grading Report</h2>
                     <button
                       onClick={() => setSelectedReview(null)}
-                      className="text-gray-500 hover:text-white transition-colors"
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -456,94 +427,93 @@ function Dashboard() {
 
                 {/* Content */}
                 <div className="p-5">
-                  {/* Branch Info */}
-                  <div className="mb-5">
-                    <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Branch</label>
-                    <code className="text-sm font-mono text-gray-900 dark:text-gray-300 bg-gray-100 dark:bg-black/40 px-3 py-2 rounded-md inline-block">
-                      {selectedReview.branchName}
-                    </code>
+                  {/* Student & Branch Info */}
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Student</label>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-300 bg-gray-100 dark:bg-black/40 px-3 py-2 rounded-md">
+                        {selectedReview.studentName || 'Anonymous'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Branch</label>
+                      <code className="text-sm font-mono text-gray-900 dark:text-gray-300 bg-gray-100 dark:bg-black/40 px-3 py-2 rounded-md inline-block">
+                        {selectedReview.branchName}
+                      </code>
+                    </div>
                   </div>
 
-                  {/* PR Link */}
-                  {selectedReview.prUrl && (
+                  {/* Score Display */}
+                  <div className="mb-5 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-500/5 dark:to-blue-500/5 rounded-lg p-6 text-center">
+                    <div className="text-4xl font-bold text-green-600 dark:text-green-500 mb-2">
+                      {selectedReview.score}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Final Grade
+                    </div>
+                  </div>
+
+                  {/* Repository Info */}
+                  {selectedReview.repoName && (
                     <div className="mb-5">
-                      <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Pull Request</label>
-                      <a
-                        href={selectedReview.prUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline flex items-center gap-1.5"
-                      >
-                        View on GitHub
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                      <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">Repository</label>
+                      <div className="text-sm text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-md font-mono text-xs break-all">
+                        {selectedReview.repoName}
+                      </div>
                     </div>
                   )}
 
-                  {/* AI Feedback Terminal - VS Code Style */}
+                  {/* AI Feedback */}
                   <div className="mb-5">
-                    <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">AI Analysis</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider block mb-2">AI Feedback</label>
                     <div className="bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-white/10 rounded-md p-4 font-mono text-xs overflow-auto max-h-96">
-                      <div className="text-gray-400 dark:text-gray-600 mb-3">$ ai-review --analyze</div>
                       <pre className="text-gray-900 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        {selectedReview.feedbackContent || selectedReview.aiFeedback}
+                        {(() => {
+                          try {
+                            const content = JSON.parse(selectedReview.reviewContent || '{}');
+                            return content.feedback || content.summary?.feedback || 'No feedback available';
+                          } catch (e) {
+                            return selectedReview.feedbackContent || selectedReview.aiFeedback || 'No feedback available';
+                          }
+                        })()}
                       </pre>
                     </div>
                   </div>
 
-                  {/* Action Buttons - Subtle & Professional */}
+                  {/* Action Button - Copy Only */}
                   <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
-                    {/* Approve Button - More Subtle */}
                     <button
-                      onClick={() => handleApprove(selectedReview.id)}
-                      disabled={approvingId === selectedReview.id}
-                      className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleCopyReport(selectedReview)}
+                      className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-500 transition-colors"
                     >
                       <span className="flex items-center justify-center gap-2">
-                        {approvingId === selectedReview.id ? (
+                        {copied ? (
                           <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Processing...
+                            <CheckCheck className="w-4 h-4" />
+                            Copied!
                           </>
                         ) : (
                           <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Approve & Post
+                            <Copy className="w-4 h-4" />
+                            Copy Report
                           </>
                         )}
                       </span>
                     </button>
+                  </div>
 
-                    {/* Reject Button */}
-                    <button
-                      onClick={() => handleReject(selectedReview.id)}
-                      disabled={approvingId === selectedReview.id || rejectingId === selectedReview.id}
-                      className="px-4 py-2.5 bg-transparent border border-gray-300 dark:border-white/20 text-gray-700 dark:text-gray-400 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        {rejectingId === selectedReview.id ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-gray-700 dark:border-white border-t-transparent rounded-full animate-spin"></div>
-                            Rejecting...
-                          </>
-                        ) : (
-                          'Reject'
-                        )}
-                      </span>
-                    </button>
+                  {/* Timestamp */}
+                  <div className="mt-4 text-xs text-gray-500 dark:text-gray-500 text-center">
+                    Generated on {formatDate(selectedReview.createdAt)}
                   </div>
                 </div>
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg p-12 text-center transition-colors">
                 <svg className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2\" />
                 </svg>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Select a review from the list to begin</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">Select a review from the list to view details</p>
               </div>
             )}
           </div>
@@ -578,7 +548,7 @@ function Dashboard() {
       <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        reviews={allReviews}
+        reviews={reviews}
       />
     </div>
   );

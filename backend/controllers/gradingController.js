@@ -143,7 +143,7 @@ async function gradeSubmission(req, res) {
           summary: summary
         }),
         score: `${summary.totalScore}/${summary.maxScore}`,
-        status: 'COMPLETED'
+        status: 'GRADED' // Changed from 'COMPLETED' to 'GRADED' for clarity
       }
     });
     console.log(`[GradingController] ✅ Review saved to database (ID: ${savedReview.id})`);
